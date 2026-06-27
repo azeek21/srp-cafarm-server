@@ -7,5 +7,4 @@ venv/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
-uv.lock
 .DS_Store
