@@ -24,6 +24,10 @@ Scope: animal CRUD, browsing (search/filter/sort/pagination), analytics, and a s
 - `gender: Gender` — enum `MALE | FEMALE`.
 - `date_of_birth: date`.
 - `status: AnimalStatus` — enum `ACTIVE | SOLD | DECEASED`, default `ACTIVE`, indexed.
+- `status_changed_at: datetime | None` — nullable UTC; set by service whenever `status` changes.
+  Single field scales to any future status (vs one column per status). Stores last transition
+  only; full history is out of scope.
+- `note: str | None` — nullable free-form text (`varchar`) for farmer notes on the animal.
 - `created_at / updated_at: datetime` — UTC.
 - `deleted_at: datetime | None` — nullable, **indexed**; `NULL` = live, non-null = soft-deleted.
 - **Partial unique index** on `(type, tag) WHERE deleted_at IS NULL`.
@@ -55,7 +59,9 @@ main.py also registers app-level exception handlers: NotFoundError → 404, Conf
 - **router**: parse query/body, call service, return response model. **No status-code logic** —
   handlers never `try/except` domain errors.
 - **service**: business rules — duplicate `(type, tag)` check, set `updated_at` on edit,
-  soft-delete, assemble analytics summary (buckets, average) from repository counts. Stays
+  status-transition stamping (set `status_changed_at = now()` whenever `status` changes),
+  soft-delete, assemble analytics summary (buckets, average) from
+  repository counts. Stays
   HTTP-agnostic: raises **domain exceptions** (`NotFoundError`, `ConflictError` from
   `app/exceptions.py`), never `HTTPException`.
 - **repository**: all SQL/SQLModel access. A single private helper builds the base `select` with
@@ -111,6 +117,8 @@ app/
     models.py             # Animal + AnimalType / Gender / AnimalStatus enums
     schemas.py            # AnimalCreate, AnimalUpdate, AnimalRead (+age_years),
                           #   AnimalListResponse, AnimalListParams
+                          #   note is client-writable; status_changed_at is server-set
+                          #   (read-only in AnimalRead, not in Create/Update)
     repository.py         # AnimalRepository: CRUD + filtered/paginated query + COUNT + GROUP BY
     service.py            # AnimalService
     router.py             # handlers + get_animal_service
@@ -153,7 +161,6 @@ app/
 
 ## Out of Scope (note in README)
 - Auth / multi-farm tenancy.
-- Alembic migrations.
 - Automated tests (pytest) — recommended next step.
 - Hard-purge / GDPR erasure of soft-deleted rows; audit history.
 - Additional `AnimalType`s, async DB driver, pagination cursors, richer/time-series analytics.

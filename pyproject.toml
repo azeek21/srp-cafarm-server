@@ -1,28 +1,39 @@
 [project]
 name = "srp-cafarm-server"
 version = "0.1.0"
-description = "Animal (Cattle) Management System — FastAPI server"
+description = "Single-farmer cattle management system — FastAPI server"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115",
-    "uvicorn[standard]>=0.30",
+    "uvicorn[standard]>=0.34",
     "sqlmodel>=0.0.22",
     "psycopg[binary]>=3.2",
-    "pydantic-settings>=2.4",
+    "pydantic-settings>=2.7",
+    "alembic>=1.18.5",
 ]
 
 [dependency-groups]
 dev = [
-    "ruff>=0.6",
+    "ruff>=0.9",
+    "pytest>=8.3",
+    "httpx>=0.28",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
 
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+# Alembic-generated migration scripts follow their own template/style.
+extend-exclude = ["migrations/versions"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+# B008: FastAPI uses `Depends(...)` in argument defaults by design.
+ignore = ["B008"]
 
 [build-system]
 requires = ["hatchling"]
